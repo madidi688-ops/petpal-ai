@@ -1,0 +1,13 @@
+{
+  "name": "petpal-ai",
+  "private": true,
+  "version": "0.1.0",
+  "description": "PetPal AI — 宠物 AI 陪伴助手 monorepo",
+  "scripts": {
+    "dev:backend": "npm --prefix backend run start:dev",
+    "dev:frontend": "npm --prefix frontend run dev",
+    "db:up": "docker compose up -d postgres redis",
+    "db:migrate": "npm --prefix backend run prisma:deploy",
+    "db:seed": "npm --prefix backend run prisma:seed"
+  }
+}

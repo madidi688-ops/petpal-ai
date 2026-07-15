@@ -1,0 +1,133 @@
+// PetPal AI · Prisma Schema（本地 SQLite）
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(uuid())
+  email        String   @unique
+  passwordHash String
+  name         String?
+  image        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pets     Pet[]
+  sessions ChatSession[]
+}
+
+model Pet {
+  id               String    @id @default(uuid())
+  userId           String
+  name             String
+  species          String    @default("cat")
+  breed            String?
+  birthday         DateTime?
+  avatarUrl        String?
+  personalityNotes String?
+  createdAt        DateTime  @default(now())
+  updatedAt        DateTime  @updatedAt
+
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+  behaviors   BehaviorEvent[]
+  sessions    ChatSession[]
+  diaries     DiaryEntry[]
+  mbtiProfile MBTIProfile?
+  emotions    EmotionLog[]
+
+  @@index([userId])
+}
+
+model BehaviorEvent {
+  id         String   @id @default(uuid())
+  petId      String
+  type       String
+  occurredAt DateTime @default(now())
+  note       String?
+  imageUrl   String?
+  moodTag    String?
+  createdAt  DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, occurredAt])
+}
+
+model ChatSession {
+  id        String   @id @default(uuid())
+  petId     String
+  userId    String
+  title     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  pet      Pet           @relation(fields: [petId], references: [id], onDelete: Cascade)
+  user     User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages ChatMessage[]
+
+  @@index([petId, updatedAt])
+}
+
+model ChatMessage {
+  id         String   @id @default(uuid())
+  sessionId  String
+  role       String
+  content    String
+  imageUrl   String?
+  tokensUsed Int?
+  createdAt  DateTime @default(now())
+
+  session ChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+
+  @@index([sessionId, createdAt])
+}
+
+model DiaryEntry {
+  id                   String   @id @default(uuid())
+  petId                String
+  date                 DateTime
+  content              String
+  moodScore            Int
+  highlightBehaviorIds String   @default("[]")
+  generatedBy          String
+  createdAt            DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@unique([petId, date])
+  @@index([petId, date])
+}
+
+model MBTIProfile {
+  id        String   @id @default(uuid())
+  petId     String   @unique
+  ei        Int
+  sn        Int
+  tf        Int
+  jp        Int
+  type      String
+  summary   String
+  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
+
+model EmotionLog {
+  id         String   @id @default(uuid())
+  petId      String
+  source     String
+  emotion    String
+  score      Int
+  recordedAt DateTime @default(now())
+
+  pet Pet @relation(fields: [petId], references: [id], onDelete: Cascade)
+
+  @@index([petId, recordedAt])
+}
