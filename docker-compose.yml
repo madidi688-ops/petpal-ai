@@ -1,7 +1,8 @@
-version: "3.9"
-
 services:
   postgres:
+    # 若直连 Docker Hub 遇 TLS 证书问题，可先：
+    # docker pull docker.m.daocloud.io/library/postgres:16-alpine
+    # docker tag docker.m.daocloud.io/library/postgres:16-alpine postgres:16-alpine
     image: postgres:16-alpine
     container_name: petpal-postgres
     restart: unless-stopped

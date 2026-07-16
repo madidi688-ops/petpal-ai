@@ -55,6 +55,8 @@ npm run dev
 ```
 petpal-ai/
 ├── docs/         # 协作文档（Agent 切换前必读）
+│   └── DEV-LOG.md  # 本机安装/开发/排障复现手册（推荐先读）
+│   └── HANDOFF.md  # 对话交接清单（新开对话必读）
 ├── frontend/     # Agent 1：前端
 ├── backend/      # Agent 2：后端
 ├── ai-agents/    # Agent 3：AI / Prompt

@@ -1,11 +1,12 @@
-// PetPal AI · Prisma Schema（本地 SQLite）
+// PetPal AI · Prisma Schema（Docker Postgres）
+// 字段用 String（兼容从 SQLite 迁过来的代码）；provider 为 postgresql。
 
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
