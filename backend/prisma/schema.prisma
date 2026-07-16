@@ -2,7 +2,8 @@
 // 字段用 String（兼容从 SQLite 迁过来的代码）；provider 为 postgresql。
 
 generator client {
-  provider = "prisma-client-js"
+  provider      = "prisma-client-js"
+  binaryTargets = ["native", "debian-openssl-3.0.x"]
 }
 
 datasource db {
