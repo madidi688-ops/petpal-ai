@@ -1,18 +1,24 @@
-# Production backend image
-FROM node:20-alpine AS deps
+# Production backend — Debian slim（避免 Alpine 上 Prisma OpenSSL 崩溃）
+FROM node:20-bookworm-slim AS deps
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY backend/package.json backend/package-lock.json* ./
 RUN npm ci || npm install
 
-FROM node:20-alpine AS build
+FROM node:20-bookworm-slim AS build
 WORKDIR /app
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=deps /app/node_modules ./node_modules
 COPY backend/. .
 RUN npx prisma generate && npm run build
 
-FROM node:20-alpine AS runner
+FROM node:20-bookworm-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
+RUN apt-get update -y && apt-get install -y --no-install-recommends openssl ca-certificates \
+  && rm -rf /var/lib/apt/lists/*
 COPY --from=build /app/package.json ./
 COPY --from=build /app/node_modules ./node_modules
 COPY --from=build /app/dist ./dist
@@ -20,5 +26,4 @@ COPY --from=build /app/prisma ./prisma
 COPY frontend/public/media/cat.jpg ./seed-assets/cat.jpg
 RUN mkdir -p uploads
 EXPOSE 4000
-# migrate + seed (idempotent) then start
 CMD ["sh", "-c", "npx prisma migrate deploy && npx ts-node --transpile-only prisma/seed.ts && node dist/main.js"]
