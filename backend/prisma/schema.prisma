@@ -81,6 +81,8 @@ model ChatMessage {
   role       String
   content    String
   imageUrl   String?
+  videoUrl   String?
+  audioUrl   String?
   tokensUsed Int?
   createdAt  DateTime @default(now())
 

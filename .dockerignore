@@ -1,0 +1,12 @@
+node_modules
+.git
+.next
+**/node_modules
+**/.next
+backend/uploads
+coverage
+*.md
+docs/demo/stills
+.env
+.env.*
+!**/.env.example

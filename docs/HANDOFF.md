@@ -3,14 +3,14 @@
 > **给新开对话的 Agent / 人类**：先读本文件，再读 `docs/DEV-LOG.md`。  
 > 交接时间：2026-07-16 13:18（UTC+8）  
 > 本地路径：`d:\vibe coding\petpal-ai`  
-> GitHub（私有）：https://github.com/madidi688-ops/petpal-ai  
-> 账号：`madidi688-ops`
+> GitHub（公开）：https://github.com/madidi688-ops/petpal-ai  
+> 求职材料：`docs/PRODUCT-CASE.md` · `docs/DEMO.md` · `npm run eval` · http://localhost:3000/case
 
 ---
 
 ## 1. 一句话进度
 
-**MVP 功能已落地并可本机演示；基础设施层 Postgres + Redis 已成功跑在 Docker 里；前后端仍在宿主机用 npm 跑（未容器化前后端）。**
+**MVP + 多模态演示已可用**：纯文本 DeepSeek；图/视/音走火山方舟；宠物头像可上传并显示在对话中。Postgres + Redis 在 Docker；前后端宿主机 npm（PORT=4001）。已补齐产品案例作答、离线 eval、演示静帧。
 
 ---
 
@@ -77,7 +77,8 @@ npm.cmd run dev
 - `DATABASE_URL=postgresql://petpal:petpal@localhost:5432/petpal?schema=public`
 - `REDIS_URL=redis://localhost:6379`
 - `PORT=4001`
-- `DEEPSEEK_API_KEY=...`（已配置过）
+- `DEEPSEEK_API_KEY=...`（文本）
+- `ARK_API_KEY` / `ARK_MODEL` / 可选 `ARK_AUDIO_MODEL`（多模态）
 - 前端 `NEXT_PUBLIC_API_BASE_URL=http://localhost:4001`
 
 ---
@@ -96,11 +97,26 @@ npm.cmd run dev
 
 ## 6. 建议新对话优先做的事
 
-1. **提交并同步** `DEV-LOG.md` / `HANDOFF.md` / Postgres schema / compose 改动到 GitHub  
-2. （可选）把 backend/frontend 也真正放进 Docker Compose（目前只有 DB 在容器里）  
-3. （可选）配置 Docker Desktop 镜像加速，避免每次 DaoCloud 手动 tag  
-4. 产品向：多宠体验打磨、流式对话、Prompt 评测、作业用的一页 A4 机会验证文档  
-5. 安全：用户曾在聊天中暴露过 API Key / GitHub Token，提醒轮换
+1. ~~体验润色（演示向）~~ — **已做**
+2. ~~宠物头像~~ — **已做**
+3. ~~中等优先~~ — **已做**
+4. **可后置项优先级（已决策）**
+
+| 优先级 | 项 | 结论 | 原因 |
+|---|---|---|---|
+| P0 | 安全（`.env` / Key 轮换） | ✅ 本轮核对 | Key 曾进聊天；`.env` 已在 gitignore 且未入库 |
+| P1 | 最小测试 + Prompt evals 骨架 | ✅ 本轮落地 | 作业可演示、回归便宜；不依赖本机 Docker TLS |
+| P2 | 前后端 Docker 化 | ⏸ 暂缓 | compose 里已有定义，但本机 Docker Hub TLS 不稳，且日常用 npm+4001 |
+| P3 | PWA / 移动端 | ✅ 已加 manifest + SW；手机安装需 HTTPS | 见设置页说明；非应用商店安装包 |
+| P4 | 健康档案 / 订阅 | ⏸ 不做 MVP | 产品 v2 |
+
+5. 安全提醒：聊天中暴露过的 `ARK_*` / `DEEPSEEK_*` / GitHub Token **建议在控制台轮换**；勿把 `.env` 提交进仓。
+
+测试与 evals：
+```bash
+cd backend && npm test
+node ai-agents/evals/run-offline.mjs
+```
 
 ---
 
@@ -123,8 +139,9 @@ npm.cmd run dev
 继续 PetPal AI（d:\vibe coding\petpal-ai）。
 先读 docs/HANDOFF.md 和 docs/DEV-LOG.md。
 当前：Postgres+Redis 已在 Docker；前后端宿主机 npm；PORT=4001。
-私有仓 madidi688-ops/petpal-ai。
-下一步优先：把 DEV-LOG/HANDOFF 与 Postgres 相关改动提交并同步到 GitHub。
+公开仓 https://github.com/madidi688-ops/petpal-ai 。
+求职材料：docs/PRODUCT-CASE.md、docs/DEMO.md；npm run eval；/case 页。
+下一步：录一段 2 分钟演示视频并把链接写进 README。
 注意：conda 的 SSL_CERT_FILE 要先 Remove-Item；Docker Hub 拉取用 DaoCloud 镜像。
 ```
 

@@ -13,6 +13,11 @@ out/
 .env
 .env.local
 .env.*.local
+backend/.env
+frontend/.env
+frontend/.env.local
+**/.env
+!**/.env.example
 
 # 日志
 *.log

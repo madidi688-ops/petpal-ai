@@ -8,6 +8,11 @@
     "dev:frontend": "npm --prefix frontend run dev",
     "db:up": "docker compose up -d postgres redis",
     "db:migrate": "npm --prefix backend run prisma:deploy",
-    "db:seed": "npm --prefix backend run prisma:seed"
+    "db:seed": "npm --prefix backend run prisma:seed",
+    "eval": "node ai-agents/evals/run-offline.mjs",
+    "demo:stills": "node infra/scripts/capture-demo-stills.mjs"
+  },
+  "devDependencies": {
+    "puppeteer-core": "^23.11.1"
   }
 }

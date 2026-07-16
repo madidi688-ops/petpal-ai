@@ -28,13 +28,33 @@ function Axis({
   );
 }
 
-export function MbtiRadar({ profile }: { profile: MbtiProfile }) {
+export function MbtiRadar({
+  profile,
+  behaviorCount,
+}: {
+  profile: MbtiProfile;
+  behaviorCount?: number;
+}) {
   return (
     <div className="card-soft space-y-5">
       <div className="flex items-end justify-between gap-3">
         <div>
           <p className="text-sm text-ink/50">性格画像</p>
           <h3 className="font-display text-3xl font-bold text-moss">{profile.type}</h3>
+        </div>
+        <div className="text-right text-xs text-ink/40">
+          {typeof behaviorCount === 'number' && <p>基于 {behaviorCount} 条行为</p>}
+          {profile.updatedAt && (
+            <p>
+              更新于{' '}
+              {new Date(profile.updatedAt).toLocaleString('zh-CN', {
+                month: 'numeric',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+              })}
+            </p>
+          )}
         </div>
       </div>
       <div className="space-y-4">

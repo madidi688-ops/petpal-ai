@@ -7,6 +7,8 @@
  * - backend/src/ai/prompts/diary-generator.ts
  * - backend/src/ai/prompts/mbti-analyzer.ts
  * - backend/src/ai/prompts/emotion-classifier.ts
+ *
+ * Prompt 评测骨架：ai-agents/evals/
  */
 
 export const AI_AGENT_SOURCE = 'backend/src/ai/prompts';

@@ -4,20 +4,38 @@ import Redis from 'ioredis';
 
 @Injectable()
 export class RedisService implements OnModuleDestroy {
-  readonly client: Redis;
+  private readonly client: Redis | null;
 
   constructor(config: ConfigService) {
-    this.client = new Redis(config.get<string>('redisUrl') ?? 'redis://localhost:6379', {
+    const url = (config.get<string>('redisUrl') ?? '').trim();
+    const disabled =
+      !url ||
+      url === 'off' ||
+      url === 'disabled' ||
+      url === 'none' ||
+      process.env.REDIS_DISABLED === 'true';
+
+    if (disabled) {
+      // Demo / free hosting：不连 Redis，聊天上下文仍在 Postgres
+      this.client = null;
+      return;
+    }
+
+    const redis = new Redis(url, {
       maxRetriesPerRequest: 1,
       enableOfflineQueue: false,
       retryStrategy: () => null,
+      lazyConnect: true,
     });
-    this.client.on('error', () => {
-      // Redis is optional for MVP; chat memory falls back gracefully
+    redis.on('error', () => {
+      // optional
     });
+    void redis.connect().catch(() => undefined);
+    this.client = redis;
   }
 
   async onModuleDestroy() {
+    if (!this.client) return;
     try {
       await this.client.quit();
     } catch {
@@ -26,6 +44,7 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async getJson<T>(key: string): Promise<T | null> {
+    if (!this.client) return null;
     try {
       const raw = await this.client.get(key);
       return raw ? (JSON.parse(raw) as T) : null;
@@ -35,8 +54,18 @@ export class RedisService implements OnModuleDestroy {
   }
 
   async setJson(key: string, value: unknown, ttlSeconds = 86400): Promise<void> {
+    if (!this.client) return;
     try {
       await this.client.set(key, JSON.stringify(value), 'EX', ttlSeconds);
+    } catch {
+      // ignore offline redis
+    }
+  }
+
+  async del(key: string): Promise<void> {
+    if (!this.client) return;
+    try {
+      await this.client.del(key);
     } catch {
       // ignore offline redis
     }

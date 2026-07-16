@@ -1,6 +1,7 @@
-import type { AuthUser } from './types';
+import type { AuthUser, ChatMessage, EmotionLog } from './types';
+import { friendlyError } from './friendly-error';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4001';
 
 export type ApiOk<T> = { ok: true; data: T };
 export type ApiErr = { ok: false; error: { code: string; message: string } };
@@ -17,6 +18,11 @@ export function setToken(token: string | null) {
   else localStorage.removeItem('petpal_token');
 }
 
+export function apiUrl(path: string) {
+  if (path.startsWith('http')) return path;
+  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+}
+
 export async function api<T>(
   path: string,
   options: RequestInit & { json?: unknown } = {},
@@ -28,17 +34,22 @@ export async function api<T>(
     headers.set('Content-Type', 'application/json');
   }
 
-  const res = await fetch(`${API_BASE}${path}`, {
-    ...options,
-    headers,
-    body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
-  });
+  let res: Response;
+  try {
+    res = await fetch(`${API_BASE}${path}`, {
+      ...options,
+      headers,
+      body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
+    });
+  } catch (err) {
+    throw new Error(friendlyError(err instanceof Error ? err.message : '网络错误'));
+  }
 
   const body = (await res.json()) as ApiResponse<T>;
   if (!res.ok || !body.ok) {
     const message =
       !body.ok && body.error?.message ? body.error.message : `Request failed (${res.status})`;
-    throw new Error(message);
+    throw new Error(friendlyError(message));
   }
   return body.data;
 }
@@ -70,7 +81,110 @@ export async function uploadFile(file: File) {
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: form,
   });
-  const body = (await res.json()) as ApiResponse<{ url: string; filename: string }>;
-  if (!res.ok || !body.ok) throw new Error('Upload failed');
+  let body: ApiResponse<{
+    url: string;
+    filename: string;
+    mimeType?: string;
+    kind?: 'image' | 'audio' | 'video';
+  }>;
+  try {
+    body = (await res.json()) as typeof body;
+  } catch {
+    throw new Error(friendlyError(`上传失败（HTTP ${res.status}）`));
+  }
+  if (!res.ok || !body.ok) {
+    const message =
+      !body.ok && body.error?.message ? body.error.message : `上传失败（HTTP ${res.status}）`;
+    throw new Error(friendlyError(message));
+  }
   return body.data;
+}
+
+export type StreamChatHandlers = {
+  onMeta?: (data: { sessionId: string }) => void;
+  onDelta?: (data: { content: string }) => void;
+  onDone?: (data: {
+    sessionId: string;
+    message: ChatMessage;
+    emotion: EmotionLog;
+  }) => void;
+  onError?: (message: string) => void;
+};
+
+/** POST /pets/:id/chat/stream — SSE（meta / delta / done / error） */
+export async function streamChat(
+  petId: string,
+  body: {
+    content?: string;
+    sessionId?: string;
+    imageUrl?: string;
+    videoUrl?: string;
+    audioUrl?: string;
+  },
+  handlers: StreamChatHandlers,
+) {
+  const token = getToken();
+  const res = await fetch(`${API_BASE}/pets/${petId}/chat/stream`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!res.ok || !res.body) {
+    let message = `对话失败（HTTP ${res.status}）`;
+    try {
+      const body = (await res.json()) as ApiResponse<unknown>;
+      if (!body.ok && body.error?.message) message = body.error.message;
+    } catch {
+      // ignore
+    }
+    if (res.status === 401) message = '登录已过期，请重新登录';
+    throw new Error(friendlyError(message));
+  }
+
+  const reader = res.body.getReader();
+  const decoder = new TextDecoder();
+  let buffer = '';
+
+  while (true) {
+    const { done, value } = await reader.read();
+    if (done) break;
+    buffer += decoder.decode(value, { stream: true });
+
+    const parts = buffer.split('\n\n');
+    buffer = parts.pop() ?? '';
+
+    for (const part of parts) {
+      const lines = part.split('\n');
+      let event = 'message';
+      let dataLine = '';
+      for (const line of lines) {
+        if (line.startsWith('event:')) event = line.slice(6).trim();
+        if (line.startsWith('data:')) dataLine += line.slice(5).trim();
+      }
+      if (!dataLine) continue;
+      try {
+        const data = JSON.parse(dataLine) as Record<string, unknown>;
+        if (event === 'meta') handlers.onMeta?.(data as { sessionId: string });
+        else if (event === 'delta') handlers.onDelta?.(data as { content: string });
+        else if (event === 'done')
+          handlers.onDone?.(
+            data as {
+              sessionId: string;
+              message: ChatMessage;
+              emotion: EmotionLog;
+            },
+          );
+        else if (event === 'error')
+          handlers.onError?.(
+            friendlyError(String((data as { message?: string }).message ?? '稍后再试')),
+          );
+      } catch {
+        // ignore partial JSON
+      }
+    }
+  }
 }

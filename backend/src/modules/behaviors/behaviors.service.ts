@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../infra/prisma/prisma.service';
 import { PetsService } from '../pets/pets.service';
 import { CreateBehaviorDto } from './dto/create-behavior.dto';
@@ -31,6 +31,18 @@ export class BehaviorsService {
         moodTag: dto.moodTag,
       },
     });
+  }
+
+  async remove(petId: string, userId: string, behaviorId: string) {
+    await this.pets.getOwned(petId, userId);
+    const row = await this.prisma.behaviorEvent.findFirst({
+      where: { id: behaviorId, petId },
+    });
+    if (!row) {
+      throw new NotFoundException({ error: 'NOT_FOUND', message: '行为记录不存在' });
+    }
+    await this.prisma.behaviorEvent.delete({ where: { id: behaviorId } });
+    return { deleted: true };
   }
 
   async listByDate(petId: string, userId: string, date: Date) {

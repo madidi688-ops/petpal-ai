@@ -1,7 +1,7 @@
 'use client';
 
-import { FormEvent, useState } from 'react';
-import { api, uploadFile } from '@/lib/api';
+import { FormEvent, useEffect, useState } from 'react';
+import { api, apiUrl, uploadFile } from '@/lib/api';
 import type { BehaviorEvent } from '@/lib/types';
 
 const TYPES = [
@@ -14,6 +14,8 @@ const TYPES = [
   { value: 'other', label: '其他' },
 ];
 
+const MOOD_CHIPS = ['开心', '黏人', '兴奋', '犯困', '馋嘴', '炸毛'];
+
 export function BehaviorForm({
   petId,
   onCreated,
@@ -25,20 +27,36 @@ export function BehaviorForm({
   const [note, setNote] = useState('');
   const [moodTag, setMoodTag] = useState('');
   const [file, setFile] = useState<File | null>(null);
+  const [preview, setPreview] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    return () => {
+      if (preview) URL.revokeObjectURL(preview);
+    };
+  }, [preview]);
+
+  function onPick(f: File | null) {
+    if (preview) URL.revokeObjectURL(preview);
+    setFile(f);
+    setPreview(f ? URL.createObjectURL(f) : null);
+  }
 
   async function onSubmit(e: FormEvent) {
     e.preventDefault();
     setLoading(true);
     setError('');
     try {
+      if (file && file.size > 5 * 1024 * 1024) {
+        throw new Error('图片需 ≤5MB');
+      }
       let imageUrl: string | undefined;
       if (file) {
         const uploaded = await uploadFile(file);
         imageUrl = uploaded.url.startsWith('http')
           ? uploaded.url
-          : `${process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000'}${uploaded.url}`;
+          : apiUrl(uploaded.url);
       }
       const event = await api<BehaviorEvent>(`/pets/${petId}/behaviors`, {
         method: 'POST',
@@ -51,7 +69,7 @@ export function BehaviorForm({
       });
       setNote('');
       setMoodTag('');
-      setFile(null);
+      onPick(null);
       onCreated?.(event);
     } catch (err) {
       setError(err instanceof Error ? err.message : '保存失败');
@@ -63,13 +81,22 @@ export function BehaviorForm({
   return (
     <form onSubmit={onSubmit} className="card-soft space-y-3">
       <h3 className="font-display text-lg font-semibold">记录一次行为</h3>
-      <select className="input" value={type} onChange={(e) => setType(e.target.value)}>
+      <div className="flex flex-wrap gap-1.5">
         {TYPES.map((t) => (
-          <option key={t.value} value={t.value}>
+          <button
+            key={t.value}
+            type="button"
+            className={`rounded-full px-2.5 py-1 text-xs transition ${
+              type === t.value
+                ? 'bg-moss text-white'
+                : 'bg-mist text-ink/70 hover:bg-moss/15'
+            }`}
+            onClick={() => setType(t.value)}
+          >
             {t.label}
-          </option>
+          </button>
         ))}
-      </select>
+      </div>
       <textarea
         className="input"
         rows={3}
@@ -77,18 +104,38 @@ export function BehaviorForm({
         value={note}
         onChange={(e) => setNote(e.target.value)}
       />
-      <input
-        className="input"
-        placeholder="情绪标签，如 playful"
-        value={moodTag}
-        onChange={(e) => setMoodTag(e.target.value)}
-      />
-      <input
-        className="block w-full text-sm text-ink/60"
-        type="file"
-        accept="image/jpeg,image/png,image/webp"
-        onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-      />
+      <div className="space-y-1.5">
+        <p className="text-xs text-ink/45">心情标签</p>
+        <div className="flex flex-wrap gap-1.5">
+          {MOOD_CHIPS.map((m) => (
+            <button
+              key={m}
+              type="button"
+              className={`rounded-full px-2.5 py-1 text-xs transition ${
+                moodTag === m
+                  ? 'bg-clay/90 text-white'
+                  : 'bg-mist text-ink/60 hover:bg-clay/15'
+              }`}
+              onClick={() => setMoodTag((prev) => (prev === m ? '' : m))}
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+      </div>
+      <label className="block cursor-pointer text-sm text-ink/60">
+        <span className="btn-ghost inline-block px-3 py-1.5 text-xs">选择图片（可选）</span>
+        <input
+          className="hidden"
+          type="file"
+          accept="image/jpeg,image/png,image/webp"
+          onChange={(e) => onPick(e.target.files?.[0] ?? null)}
+        />
+      </label>
+      {preview && (
+        // eslint-disable-next-line @next/next/no-img-element
+        <img src={preview} alt="" className="h-24 w-24 rounded-xl object-cover ring-1 ring-ink/10" />
+      )}
       {error && <p className="text-sm text-clay">{error}</p>}
       <button className="btn-primary" type="submit" disabled={loading}>
         {loading ? '保存中…' : '保存记录'}

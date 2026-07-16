@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import type { EmotionLog, Pet } from '@/lib/types';
 import { EmotionTag } from './emotion-tag';
+import { PetAvatar } from './pet-avatar';
 
 const SPECIES: Record<string, string> = { cat: '猫', dog: '狗', other: '宠物' };
 
@@ -15,9 +16,7 @@ export function PetCard({ pet, emotion }: { pet: Pet; emotion?: EmotionLog | nul
             {pet.breed ? ` · ${pet.breed}` : ''}
           </p>
         </div>
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-moss/15 font-display text-lg font-bold text-moss">
-          {pet.name.slice(0, 1)}
-        </div>
+        <PetAvatar pet={pet} size="md" />
       </div>
 
       {emotion ? (

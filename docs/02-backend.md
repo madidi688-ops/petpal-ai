@@ -65,6 +65,8 @@ backend/
 | POST | `/pets/:id/chat` | 和宠物对话（流式或非流式） |
 | GET | `/pets/:id/chat/sessions` | 会话列表 |
 | GET | `/pets/:id/chat/sessions/:sid` | 会话消息 |
+| POST | `/pets/:id/chat` | 发送消息（非流式；可带 `imageUrl` 走 VL） |
+| POST | `/pets/:id/chat/stream` | 流式发送（SSE：`meta` / `delta` / `done` / `error`） |
 | POST | `/pets/:id/diary/generate` | 触发日记生成 |
 | GET | `/pets/:id/diary` | 日记时间线 |
 | POST | `/pets/:id/mbti/refresh` | 重新生成 MBTI |
@@ -91,3 +93,4 @@ backend/
 - 上传图片限制：≤ 5MB，仅 `image/jpeg|png|webp`
 - 调用 LLM 必须走 `DeepseekService`，禁止直接 `fetch`
 - 短期对话记忆用 Redis key：`chat:session:{sessionId}:messages`，TTL 24h
+- **模型路由**：纯文本 → `DEEPSEEK_*`；带图/音/视频 → 火山方舟 `ARK_*`（`POST /api/v3/responses`，模型如 `doubao-seed-1-8-251228`）

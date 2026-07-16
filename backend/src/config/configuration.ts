@@ -9,5 +9,28 @@ export default () => ({
     baseUrl: process.env.DEEPSEEK_BASE_URL ?? 'https://api.deepseek.com',
     model: process.env.DEEPSEEK_MODEL ?? 'deepseek-chat',
     vlModel: process.env.DEEPSEEK_VL_MODEL ?? 'deepseek-vl',
+    visionNative: process.env.DEEPSEEK_VISION_NATIVE === 'true',
   },
+  // 多模态：火山方舟 Responses API（也可用 SEEDANCE_* 别名）
+  seedance: {
+    apiKey: process.env.ARK_API_KEY ?? process.env.SEEDANCE_API_KEY ?? '',
+    baseUrl:
+      process.env.ARK_BASE_URL ??
+      process.env.SEEDANCE_BASE_URL ??
+      'https://ark.cn-beijing.volces.com/api/v3',
+    model:
+      process.env.ARK_MODEL ??
+      process.env.SEEDANCE_MODEL ??
+      'doubao-seed-2-1-pro-260628',
+    /** 支持 input_audio 的接入点（如 Seed 2.0 Lite）；不设则与 ARK_MODEL 相同 */
+    audioModel: process.env.ARK_AUDIO_MODEL ?? '',
+  },
+  /** 供远端模型拉取 uploads；Render 等平台可能只注入 hostname */
+  publicBaseUrl: (() => {
+    const raw =
+      process.env.PUBLIC_BASE_URL ??
+      `http://localhost:${process.env.PORT ?? '4001'}`;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
+    return `https://${raw}`;
+  })(),
 });

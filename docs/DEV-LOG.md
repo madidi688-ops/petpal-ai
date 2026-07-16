@@ -393,8 +393,10 @@ gh repo edit madidi688-ops/petpal-ai --visibility public
 1. Docker Hub 直连本机常因 TLS 证书失败；拉镜像需走 DaoCloud 等镜像源（见 §3.6）。
 2. 迁库策略是 Postgres 空库 + seed，不是把 SQLite 聊天历史全量迁过去（`dev.db` 仍可作备份）。
 3. 本机 HTTPS 证书环境异常，`git push` 不稳定；已用 API 上传兜底。
-4. DeepSeek Key、GitHub Token 只能放本地 `.env` / `gh` 凭据，**禁止提交到仓库**。
+4. DeepSeek / 方舟 Key、GitHub Token 只能放本地 `.env` / `gh` 凭据，**禁止提交到仓库**。
 5. 重启电脑后，Agent 进程与 `npm`/`docker` 前台任务都会断；需重新 `compose up` 与 `npm run`。
+6. **模型路由**：纯文本 → DeepSeek；图/视频 → `ARK_MODEL`；语音 → `ARK_AUDIO_MODEL`（需支持 `input_audio` 的接入点，如 Seed 2.0 Lite）。录音在前端转 wav。
+7. 宠物头像：详情页上传 `avatarUrl`，对话气泡左侧展示。
 
 ---
 

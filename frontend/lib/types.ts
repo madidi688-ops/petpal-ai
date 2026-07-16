@@ -19,10 +19,21 @@ export type BehaviorEvent = {
   moodTag?: string | null;
 };
 
+export type ChatSession = {
+  id: string;
+  petId: string;
+  title?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type ChatMessage = {
   id: string;
   role: 'user' | 'assistant' | 'system';
   content: string;
+  imageUrl?: string | null;
+  videoUrl?: string | null;
+  audioUrl?: string | null;
   createdAt: string;
 };
 
@@ -31,6 +42,8 @@ export type DiaryEntry = {
   date: string;
   content: string;
   moodScore: number;
+  highlightBehaviorIds?: string;
+  generatedBy?: string;
 };
 
 export type MbtiProfile = {
@@ -41,6 +54,7 @@ export type MbtiProfile = {
   jp: number;
   type: string;
   summary: string;
+  updatedAt?: string;
 };
 
 export type EmotionLog = {

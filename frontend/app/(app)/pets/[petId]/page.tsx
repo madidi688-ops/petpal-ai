@@ -1,11 +1,13 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useParams } from 'next/navigation';
-import { api } from '@/lib/api';
+import { api, uploadFile } from '@/lib/api';
 import type { DiaryEntry, MbtiProfile, Pet } from '@/lib/types';
 import { MbtiRadar } from '@/components/mbti-radar';
+import { PetAvatar } from '@/components/pet-avatar';
+import { DiaryShareCard } from '@/components/diary-share-card';
 
 export default function PetDetailPage() {
   const params = useParams();
@@ -13,19 +15,23 @@ export default function PetDetailPage() {
   const [pet, setPet] = useState<Pet | null>(null);
   const [diaries, setDiaries] = useState<DiaryEntry[]>([]);
   const [mbti, setMbti] = useState<MbtiProfile | null>(null);
+  const [behaviorCount, setBehaviorCount] = useState(0);
   const [busy, setBusy] = useState('');
   const [error, setError] = useState('');
+  const fileRef = useRef<HTMLInputElement>(null);
 
   async function load() {
     try {
-      const [p, d, m] = await Promise.all([
+      const [p, d, m, behaviors] = await Promise.all([
         api<Pet>(`/pets/${petId}`),
         api<DiaryEntry[]>(`/pets/${petId}/diary`),
         api<MbtiProfile | null>(`/pets/${petId}/mbti`),
+        api<{ id: string }[]>(`/pets/${petId}/behaviors?take=100`).catch(() => []),
       ]);
       setPet(p);
       setDiaries(d);
       setMbti(m);
+      setBehaviorCount(behaviors.length);
     } catch (err) {
       setError(err instanceof Error ? err.message : '加载失败');
     }
@@ -34,6 +40,32 @@ export default function PetDetailPage() {
   useEffect(() => {
     load();
   }, [petId]);
+
+  async function onAvatarPick(file: File | null) {
+    if (!file || !file.type.startsWith('image/')) {
+      setError('请选择图片作为头像');
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setError('头像需 ≤5MB');
+      return;
+    }
+    setBusy('avatar');
+    setError('');
+    try {
+      const uploaded = await uploadFile(file);
+      const updated = await api<Pet>(`/pets/${petId}`, {
+        method: 'PATCH',
+        json: { avatarUrl: uploaded.url },
+      });
+      setPet(updated);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : '头像上传失败');
+    } finally {
+      setBusy('');
+      if (fileRef.current) fileRef.current.value = '';
+    }
+  }
 
   async function generateDiary() {
     setBusy('diary');
@@ -67,14 +99,35 @@ export default function PetDetailPage() {
   return (
     <div className="space-y-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div>
-          <Link href="/dashboard" className="text-sm text-ink/50 hover:text-ink">
-            ← 返回
-          </Link>
-          <h1 className="font-display text-3xl font-bold">{pet?.name ?? '宠物详情'}</h1>
-          {pet?.personalityNotes && (
-            <p className="mt-2 max-w-xl text-sm text-ink/60">{pet.personalityNotes}</p>
-          )}
+        <div className="flex items-start gap-4">
+          <div className="relative">
+            <PetAvatar pet={pet} size="lg" />
+            <input
+              ref={fileRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              className="hidden"
+              onChange={(e) => onAvatarPick(e.target.files?.[0] ?? null)}
+            />
+            <button
+              type="button"
+              className="btn-ghost mt-2 w-full px-2 py-1 text-xs"
+              disabled={busy === 'avatar'}
+              onClick={() => fileRef.current?.click()}
+            >
+              {busy === 'avatar' ? '上传中…' : pet?.avatarUrl ? '更换头像' : '上传头像'}
+            </button>
+          </div>
+          <div>
+            <Link href="/dashboard" className="text-sm text-ink/50 hover:text-ink">
+              ← 返回
+            </Link>
+            <h1 className="font-display text-3xl font-bold">{pet?.name ?? '宠物详情'}</h1>
+            {pet?.personalityNotes && (
+              <p className="mt-2 max-w-xl text-sm text-ink/60">{pet.personalityNotes}</p>
+            )}
+            <p className="mt-1 text-xs text-ink/40">上传照片后，对话里会显示 TA 的头像</p>
+          </div>
         </div>
         <div className="flex flex-wrap gap-2">
           <Link className="btn-ghost" href={`/chat/${petId}`}>
@@ -102,22 +155,19 @@ export default function PetDetailPage() {
             </button>
           </div>
           {diaries.length === 0 ? (
-            <div className="card-soft text-sm text-ink/50">还没有日记。先记几条行为再生成。</div>
-          ) : (
-            <div className="space-y-3">
+            <div className="card-soft space-y-2 text-sm text-ink/50">
+              <p>还没有日记。先记几条行为再生成。</p>
+              <Link href="/behaviors" className="text-moss underline">
+                去记行为
+              </Link>
+            </div>
+          ) : pet ? (
+            <div className="space-y-4">
               {diaries.map((d) => (
-                <article key={d.id} className="card-soft space-y-2">
-                  <div className="flex items-center justify-between text-xs text-ink/45">
-                    <span>{String(d.date).slice(0, 10)}</span>
-                    <span>心情 {d.moodScore}</span>
-                  </div>
-                  <p className="whitespace-pre-wrap text-sm leading-relaxed text-ink/80">
-                    {d.content}
-                  </p>
-                </article>
+                <DiaryShareCard key={d.id} pet={pet} diary={d} />
               ))}
             </div>
-          )}
+          ) : null}
         </div>
 
         <div className="space-y-4">
@@ -133,10 +183,14 @@ export default function PetDetailPage() {
             </button>
           </div>
           {mbti ? (
-            <MbtiRadar profile={mbti} />
+            <MbtiRadar profile={mbti} behaviorCount={behaviorCount} />
           ) : (
-            <div className="card-soft text-sm text-ink/50">
-              还没有画像。积累行为后再点「刷新画像」。
+            <div className="card-soft space-y-2 text-sm text-ink/50">
+              <p>还没有画像。积累行为后再点「刷新画像」。</p>
+              <p className="text-xs text-ink/40">当前已有 {behaviorCount} 条行为记录</p>
+              <Link href="/behaviors" className="text-moss underline">
+                去记行为
+              </Link>
             </div>
           )}
         </div>

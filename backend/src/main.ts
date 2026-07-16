@@ -9,8 +9,16 @@ import { join } from 'path';
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
+  const isDev = process.env.NODE_ENV !== 'production';
+  const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => (s.startsWith('http://') || s.startsWith('https://') ? s : `https://${s}`));
+
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') ?? ['http://localhost:3000'],
+    // 开发态允许手机局域网源；生产用 CORS_ORIGIN 白名单（可带或不带 https://）
+    origin: isDev ? true : corsOrigins,
     credentials: true,
   });
 
@@ -27,9 +35,10 @@ async function bootstrap() {
   app.useStaticAssets(join(process.cwd(), 'uploads'), { prefix: '/uploads/' });
 
   const port = Number(process.env.PORT ?? 4000);
-  await app.listen(port);
+  // 0.0.0.0：允许手机通过局域网 IP 访问
+  await app.listen(port, '0.0.0.0');
   // eslint-disable-next-line no-console
-  console.log(`PetPal API listening on http://localhost:${port}`);
+  console.log(`PetPal API listening on http://0.0.0.0:${port} (LAN phones OK)`);
 }
 
 bootstrap();

@@ -4,7 +4,6 @@ import { useAuthStore } from '@/lib/auth-store';
 
 export default function SettingsPage() {
   const user = useAuthStore((s) => s.user);
-  const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4000';
 
   return (
     <div className="mx-auto max-w-lg space-y-6">
@@ -18,15 +17,21 @@ export default function SettingsPage() {
           <span className="text-ink/50">昵称</span>
           <span>{user?.name ?? '—'}</span>
         </div>
-        <div className="flex justify-between gap-4">
-          <span className="text-ink/50">API</span>
-          <span className="truncate font-mono text-xs">{apiBase}</span>
-        </div>
       </div>
-      <p className="text-sm text-ink/55">
-        DeepSeek Key 配置在根目录 <code className="rounded bg-mist px-1">.env</code> 的{' '}
-        <code className="rounded bg-mist px-1">DEEPSEEK_API_KEY</code>。未配置时对话走演示模式。
-      </p>
+
+      <div className="card-soft space-y-2 text-sm text-ink/70">
+        <h2 className="font-display text-lg font-semibold text-ink">安装到手机</h2>
+        <p>
+          支持「添加到主屏幕」。在安全连接（HTTPS）或电脑本地环境下：
+        </p>
+        <ul className="list-disc space-y-1 pl-5 text-ink/60">
+          <li>Chrome / Edge：菜单 → 安装应用</li>
+          <li>iOS Safari：分享 → 添加到主屏幕</li>
+        </ul>
+        <p className="text-xs text-ink/45">手机录音与安装通常需要 HTTPS。</p>
+      </div>
+
+      <p className="text-sm text-ink/55">对话与日记由云端 AI 生成；若暂时不可用，请稍后再试。</p>
     </div>
   );
 }
