@@ -1,9 +1,7 @@
-# PetPal AI — one-click deploy on Render (free tier friendly)
-# Dashboard: New → Blueprint → this repo
-# Docs: https://render.com/docs/blueprint-spec
+# PetPal AI — Render Blueprint（免费档）
+# 打开：https://dashboard.render.com/select-repo?type=blueprint
 #
-# After first deploy, open the *web* service URL (not api).
-# Cold start: free web services sleep after ~15m idle (first open may wait 30–60s).
+# 修复说明：去掉 api↔web 的循环依赖；前端用运行时 API_BASE_URL，不再构建期绑死域名。
 
 databases:
   - name: petpal-db
@@ -32,16 +30,6 @@ services:
           property: connectionString
       - key: NEXTAUTH_SECRET
         generateValue: true
-      - key: CORS_ORIGIN
-        fromService:
-          name: petpal-web
-          type: web
-          property: host
-      - key: PUBLIC_BASE_URL
-        fromService:
-          name: petpal-api
-          type: web
-          property: host
       - key: DEEPSEEK_API_KEY
         sync: false
       - key: ARK_API_KEY
@@ -53,17 +41,16 @@ services:
 
   - type: web
     name: petpal-web
-    runtime: docker
+    runtime: node
     plan: free
-    dockerfilePath: ./infra/docker/frontend.Dockerfile.prod
-    dockerContext: .
+    rootDir: frontend
+    buildCommand: npm install && npm run build
+    startCommand: npm run start -- -H 0.0.0.0 -p $PORT
     healthCheckPath: /
     envVars:
       - key: NODE_ENV
         value: production
-      - key: PORT
-        value: "3000"
-      - key: NEXT_PUBLIC_API_BASE_URL
+      - key: API_BASE_URL
         fromService:
           name: petpal-api
           type: web
