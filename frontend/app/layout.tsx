@@ -1,4 +1,5 @@
 import type { Metadata, Viewport } from 'next';
+import { ApiBaseBootstrap } from '@/components/api-base-bootstrap';
 import { PwaRegister } from '@/components/pwa-register';
 import './globals.css';
 
@@ -26,9 +27,15 @@ export const viewport: Viewport = {
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
+  const apiBase =
+    process.env.API_BASE_URL ||
+    process.env.NEXT_PUBLIC_API_BASE_URL ||
+    'http://localhost:4001';
+
   return (
     <html lang="zh-CN">
       <head>
+        <ApiBaseBootstrap apiBase={apiBase} />
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="" />
         <link
