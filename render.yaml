@@ -42,14 +42,15 @@ services:
           name: petpal-api
           type: web
           property: host
+      # 可空：不填则走演示模式；以后要在 Render 控制台补真实 Key
       - key: DEEPSEEK_API_KEY
-        sync: false
+        value: ""
       - key: ARK_API_KEY
-        sync: false
+        value: ""
       - key: ARK_MODEL
-        sync: false
+        value: ""
       - key: ARK_AUDIO_MODEL
-        sync: false
+        value: ""
 
   - type: web
     name: petpal-web
