@@ -10,15 +10,22 @@ async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule);
 
   const isDev = process.env.NODE_ENV !== 'production';
-  const corsOrigins = (process.env.CORS_ORIGIN ?? 'http://localhost:3000')
+  const corsOrigins = (process.env.CORS_ORIGIN ?? '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
     .map((s) => (s.startsWith('http://') || s.startsWith('https://') ? s : `https://${s}`));
 
   app.enableCors({
-    // 开发态允许手机局域网源；生产用 CORS_ORIGIN 白名单（可带或不带 https://）
-    origin: isDev ? true : corsOrigins,
+    origin: isDev
+      ? true
+      : (origin, cb) => {
+          if (!origin) return cb(null, true);
+          if (corsOrigins.includes(origin)) return cb(null, true);
+          // Render 免费 Demo：允许同账号下的 *.onrender.com 前端
+          if (/^https:\/\/[\w-]+\.onrender\.com$/i.test(origin)) return cb(null, true);
+          return cb(null, false);
+        },
     credentials: true,
   });
 
