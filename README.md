@@ -47,8 +47,10 @@ npm run dev
 
 访问：
 - 前端：http://localhost:3000
-- 后端健康检查：http://localhost:4000/health
+- 后端健康检查：http://localhost:4001/health
 - 演示账号：`demo@petpal.ai` / `demo1234`（seed 后可用）
+
+> 说明：本机若 4000 被占用（例如 NoMachine），后端请用 `PORT=4001`，并保证前端 `NEXT_PUBLIC_API_BASE_URL=http://localhost:4001`。
 
 ## 目录结构
 
