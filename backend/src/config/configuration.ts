@@ -25,12 +25,13 @@ export default () => ({
     /** 支持 input_audio 的接入点（如 Seed 2.0 Lite）；不设则与 ARK_MODEL 相同 */
     audioModel: process.env.ARK_AUDIO_MODEL ?? '',
   },
-  /** 供远端模型拉取 uploads；Render 等平台可能只注入 hostname */
+  /** 供远端模型拉取 uploads；Render 会注入 RENDER_EXTERNAL_URL */
   publicBaseUrl: (() => {
     const raw =
-      process.env.PUBLIC_BASE_URL ??
+      process.env.PUBLIC_BASE_URL ||
+      process.env.RENDER_EXTERNAL_URL ||
       `http://localhost:${process.env.PORT ?? '4001'}`;
-    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw;
-    return `https://${raw}`;
+    if (raw.startsWith('http://') || raw.startsWith('https://')) return raw.replace(/\/$/, '');
+    return `https://${raw.replace(/\/$/, '')}`;
   })(),
 });
