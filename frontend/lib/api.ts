@@ -1,7 +1,24 @@
 import type { AuthUser, ChatMessage, EmotionLog } from './types';
 import { friendlyError } from './friendly-error';
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL ?? 'http://localhost:4001';
+declare global {
+  interface Window {
+    __PETPAL_API_BASE__?: string;
+  }
+}
+
+function resolveApiBase() {
+  if (typeof window !== 'undefined' && window.__PETPAL_API_BASE__) {
+    return window.__PETPAL_API_BASE__.replace(/\/$/, '');
+  }
+  const fromEnv = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+  if (fromEnv) {
+    const s = fromEnv.trim();
+    if (s.startsWith('http://') || s.startsWith('https://')) return s.replace(/\/$/, '');
+    return `https://${s.replace(/\/$/, '')}`;
+  }
+  return 'http://localhost:4001';
+}
 
 export type ApiOk<T> = { ok: true; data: T };
 export type ApiErr = { ok: false; error: { code: string; message: string } };
@@ -20,7 +37,8 @@ export function setToken(token: string | null) {
 
 export function apiUrl(path: string) {
   if (path.startsWith('http')) return path;
-  return `${API_BASE}${path.startsWith('/') ? path : `/${path}`}`;
+  const base = resolveApiBase();
+  return `${base}${path.startsWith('/') ? path : `/${path}`}`;
 }
 
 export async function api<T>(
@@ -36,7 +54,7 @@ export async function api<T>(
 
   let res: Response;
   try {
-    res = await fetch(`${API_BASE}${path}`, {
+    res = await fetch(apiUrl(path), {
       ...options,
       headers,
       body: options.json !== undefined ? JSON.stringify(options.json) : options.body,
@@ -76,7 +94,7 @@ export async function uploadFile(file: File) {
   const form = new FormData();
   form.append('file', file);
   const token = getToken();
-  const res = await fetch(`${API_BASE}/upload`, {
+  const res = await fetch(apiUrl('/upload'), {
     method: 'POST',
     headers: token ? { Authorization: `Bearer ${token}` } : undefined,
     body: form,
@@ -124,7 +142,7 @@ export async function streamChat(
   handlers: StreamChatHandlers,
 ) {
   const token = getToken();
-  const res = await fetch(`${API_BASE}/pets/${petId}/chat/stream`, {
+  const res = await fetch(apiUrl(`/pets/${petId}/chat/stream`), {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
